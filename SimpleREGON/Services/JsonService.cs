@@ -25,7 +25,7 @@ internal class JsonService
             .Take(20)
             .ToArray());
     }
-    internal async Task<string?> UpdateKeyAsync(HttpResponseMessage response)
+    internal async Task<string?> ParseSessionKeyAsync(HttpResponseMessage response)
     {
         var result = await JsonSerializer.DeserializeAsync<DataValue>(await response.Content.ReadAsStreamAsync());
         return result?.Data;
