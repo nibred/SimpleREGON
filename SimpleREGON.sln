@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.6.33723.286
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SimpleREGON", "SimpleREGON\SimpleREGON.csproj", "{E6F6509C-C642-433B-B10F-BC8FF3A84EA9}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SimpleREGON.Console", "SimpleREGON.Console\SimpleREGON.Console.csproj", "{2ED0468E-CE29-4DAF-A55F-1FC012A2A209}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{E6F6509C-C642-433B-B10F-BC8FF3A84EA9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E6F6509C-C642-433B-B10F-BC8FF3A84EA9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E6F6509C-C642-433B-B10F-BC8FF3A84EA9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E6F6509C-C642-433B-B10F-BC8FF3A84EA9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2ED0468E-CE29-4DAF-A55F-1FC012A2A209}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2ED0468E-CE29-4DAF-A55F-1FC012A2A209}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2ED0468E-CE29-4DAF-A55F-1FC012A2A209}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2ED0468E-CE29-4DAF-A55F-1FC012A2A209}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {750D19B1-CDB4-4BF5-9D0F-FD80FA486F69}
+	EndGlobalSection
+EndGlobal
