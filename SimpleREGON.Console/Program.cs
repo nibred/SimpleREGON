@@ -1,6 +1,6 @@
 ﻿using SimpleREGON;
 
-var sr = new SimpleRegon();
-var result = await sr.Login();
+var regon = new SimpleRegon();
+var result = await regon.Login();
 Console.WriteLine(result);
 Console.WriteLine();

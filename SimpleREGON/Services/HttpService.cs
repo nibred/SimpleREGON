@@ -6,6 +6,7 @@ internal class HttpService
     private readonly JsonService _jsonService;
     private string? _sessionApiKey;
     private string? _baseApiKey;
+    private DateTime? _sessionApiKeyTime;
 
     internal HttpService()
     {
@@ -13,7 +14,6 @@ internal class HttpService
         _jsonService ??= new JsonService();
         ConfigureBaseHeaders();
     }
-    internal string? BaseApiKey => _baseApiKey;
     internal async Task<HttpResponseMessage> GetAsync(string url, CancellationToken cancellationToken = default)
     {
         return await _httpClient.GetAsync(url, cancellationToken)
@@ -50,19 +50,33 @@ internal class HttpService
     {
         _baseApiKey ??= await GetBaseKey();
         await UpdateApiKey(_baseApiKey);
-        return !string.IsNullOrEmpty(_sessionApiKey);
+        return SetSessionTime();
     }
     internal async Task<bool> Login(string apiKey)
     {
         if (apiKey.Length < 20)
             return false;
         await UpdateApiKey(apiKey);
-        return !string.IsNullOrEmpty(_sessionApiKey);
+        return SetSessionTime();
+    }
+    internal async Task<bool> CheckApiKey()
+    {
     }
 
+    private bool SetSessionTime()
+    {
+        if (!string.IsNullOrEmpty(_sessionApiKey))
+        {
+            _sessionApiKeyTime = DateTime.Now;
+            return true;
+        }
+        return false;
+    }
     private async Task<string> GetBaseKey()
     {
         var response = await GetAsync(Settings.MainPage);
         return await _jsonService.ParseBaseKeyAsync(response);
     }
+
+
 }
