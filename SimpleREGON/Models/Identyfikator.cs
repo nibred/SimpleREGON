@@ -5,7 +5,8 @@ internal enum Identyfikator
     NIP,
     NIPy,
     REGON,
-    REGONy,
+    REGONy9,
+    REGONy14,
     KRS,
     KRSy
 }

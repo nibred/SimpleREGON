@@ -29,8 +29,10 @@ internal class JsonService
     }
     internal StringContent SerializeLogin(string baseKey)
     {
-        Login login = new();
-        login.Key = baseKey;
+        Login login = new()
+        {
+            Key = baseKey
+        };
         return CreateStringContent(login);
     }
     internal StringContent SerializeMainRequest(Identyfikator identyfikator, string search)
@@ -41,17 +43,18 @@ internal class JsonService
             Identyfikator.NIP => data.pParametryWyszukiwania.Nip = search,
             Identyfikator.NIPy => data.pParametryWyszukiwania.Nipy = search,
             Identyfikator.REGON => data.pParametryWyszukiwania.Regon = search,
-            Identyfikator.REGONy => data.pParametryWyszukiwania.Regony9zn = search,
+            Identyfikator.REGONy9 => data.pParametryWyszukiwania.Regony9zn = search,
+            Identyfikator.REGONy14 => data.pParametryWyszukiwania.Regony14zn = search,
             Identyfikator.KRS => data.pParametryWyszukiwania.Krs = search,
             Identyfikator.KRSy => data.pParametryWyszukiwania.Krsy = search,
             _ => throw new NotImplementedException()
         };
         return CreateStringContent(data);
     }
-    internal async Task<List<PodmiotShort>> DeserializeMainRequestAsync(HttpResponseMessage response)
+    internal async Task<List<T>> DeserializeMainRequestAsync<T>(HttpResponseMessage response)
     {
         var payload = new MemoryStream(Encoding.UTF8.GetBytes(await ParseDataAsync(response) ?? ""));
-        return await JsonSerializer.DeserializeAsync<List<PodmiotShort>>(payload);
+        return await JsonSerializer.DeserializeAsync<List<T>>(payload);
     }
     private StringContent CreateStringContent<T>(T data)
     {

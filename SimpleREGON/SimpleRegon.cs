@@ -26,29 +26,26 @@ public class SimpleRegon
         int[] weights14 = { 2, 4, 8, 5, 0, 9, 7, 3, 6, 1, 2, 4, 8 };
         if (regon.Any(chr => !char.IsDigit(chr)))
             return false;
+        int regonSum(int[] weights) => regon.Zip(weights, (d, w) => (d - '0') * w).Sum() % 11;
         return regon.Length switch
         {
-            9 => regon.Zip(weights9, (d, w) => (d - '0') * w).Sum() % 11 == (regon[8] - '0'),
-            14 => regon.Zip(weights14, (d, w) => (d - '0') * w).Sum() % 11 == (regon[13] - '0'),
+            9 => regonSum(weights9) == (regon[8] - '0'),
+            14 => regonSum(weights14) == (regon[13] - '0'),
             _ => false
         };
     }
-    public async Task<List<Podmiot>> SearchNipAsync(params string[] nipy)
+    public async Task<List<Podmiot>> FindByNipAsync(params string[] nipy)
     {
         foreach (string nip in nipy)
         {
             if (!ValidateNip(nip)) return new List<Podmiot>();
         }
         string joinNips = string.Join("\n", nipy);
-        List<PodmiotShort> answer = new();
-        if (nipy.Length == 1)
+        List<PodmiotShort> answer = nipy.Length switch
         {
-            answer = await _httpService!.SearchAsync(Identyfikator.NIP, nipy[0]);
-        }
-        else
-        {
-            answer = await _httpService!.SearchAsync(Identyfikator.NIPy, joinNips);
-        }
+            1 => await _httpService!.SearchAsync<PodmiotShort>(Identyfikator.NIP, nipy[0]),
+            _ => await _httpService!.SearchAsync<PodmiotShort>(Identyfikator.NIPy, joinNips)
+        };
         List<Podmiot> podmiots = new();
         foreach (var podmiot in answer)
         {
@@ -61,6 +58,46 @@ public class SimpleRegon
                 NumerNieruchomosci = podmiot.Numer_Nieruchomosci,
                 Powiat = podmiot.Powiat,
                 Regon = podmiot.Regon,
+                Skreslony = !podmiot.DataZak.Contains('-'),
+                Ulica = podmiot.Ulica,
+                Wojewodztwo = podmiot.Wojewodztwo
+            });
+        }
+        return podmiots;
+    }
+    public async Task<List<Podmiot>> FindByRegonAsync(params string[] regony)
+    {
+        foreach (string regon in regony)
+        {
+            if (!ValidateRegon(regon)) 
+                return new List<Podmiot>();
+        }
+        if (!regony.All(x => x.Length == regony[0].Length))
+        {
+            return new List<Podmiot>();
+        }
+        string joinRegons = string.Join("\n", regony);
+        List<PodmiotShort> answer = regony.Length switch
+        {
+            1 => await _httpService!.SearchAsync<PodmiotShort>(Identyfikator.REGON, regony[0]),
+            _ => regony[0].Length switch
+            {
+                9 => await _httpService!.SearchAsync<PodmiotShort>(Identyfikator.REGONy9, joinRegons),
+                _ => await _httpService!.SearchAsync<PodmiotShort>(Identyfikator.REGONy14, joinRegons)
+            }
+        };
+        List<Podmiot> podmiots = new();
+        foreach (var podmiot in answer)
+        {
+            podmiots.Add(new Podmiot
+            {
+                Gmina = podmiot.Gmina,
+                KodPocztowy = podmiot.KodPocztowy,
+                Miejscowosc = podmiot.Miejscowosc,
+                Nazwa = podmiot.Nazwa,
+                NumerNieruchomosci = podmiot.Numer_Nieruchomosci,
+                Powiat = podmiot.Powiat,
+                Regon = podmiot.RegonLink,
                 Skreslony = !podmiot.DataZak.Contains('-'),
                 Ulica = podmiot.Ulica,
                 Wojewodztwo = podmiot.Wojewodztwo

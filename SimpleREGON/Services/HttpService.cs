@@ -9,6 +9,7 @@ internal class HttpService
     private readonly JsonService _jsonService;
     private string? _sessionApiKey;
     private string? _baseApiKey;
+    private bool _userApiKey;
     private DateTime _sessionApiKeyTime;
 
     internal HttpService()
@@ -16,6 +17,38 @@ internal class HttpService
         _httpClient ??= new HttpClient();
         _jsonService ??= new JsonService();
         ConfigureBaseHeaders();
+    }
+
+    internal async Task<bool> LoginAsync()
+    {
+        _userApiKey = false;
+        _baseApiKey ??= await GetBaseKeyAsync();
+        await UpdateApiKeyAsync(_baseApiKey);
+        return SetSessionTime();
+    }
+    internal async Task<bool> LoginAsync(string apiKey)
+    {
+        if (apiKey.Length < 20)
+            return false;
+        await UpdateApiKeyAsync(apiKey);
+        if (SetSessionTime())
+        {
+            _userApiKey = true;
+            return true;
+        }
+        return false;
+    }
+    internal async Task<List<T>> SearchAsync<T>(Identyfikator identyfikator, string search)
+    {
+        await CheckApiKeyAsync();
+        StringContent content = _jsonService.SerializeMainRequest(identyfikator, search);
+        HttpResponseMessage response = await _httpClient.PostAsync(Settings.ApiDataSearchUrl, content);
+        return await _jsonService.DeserializeMainRequestAsync<T>(response);
+    }
+    private async Task CheckApiKeyAsync()
+    {
+        if (!_userApiKey || DateTime.Now.Subtract(_sessionApiKeyTime).TotalMinutes >= Settings.ApiKeyValidMinutes)
+            await LoginAsync();
     }
     private async Task<HttpResponseMessage> GetAsync(string url, CancellationToken cancellationToken = default)
     {
@@ -47,32 +80,6 @@ internal class HttpService
         var response = await PostAsync(Settings.ApiLoginUrl, _jsonService.SerializeLogin(apiKey));
         _sessionApiKey = await _jsonService.ParseDataAsync(response);
         AddHeader("Sid", _sessionApiKey);
-    }
-
-    internal async Task<bool> LoginAsync()
-    {
-        _baseApiKey ??= await GetBaseKeyAsync();
-        await UpdateApiKeyAsync(_baseApiKey);
-        return SetSessionTime();
-    }
-    internal async Task<bool> LoginAsync(string apiKey)
-    {
-        if (apiKey.Length < 20)
-            return false;
-        await UpdateApiKeyAsync(apiKey);
-        return SetSessionTime();
-    }
-    internal async Task<bool> CheckApiKeyAsync() //TODO not added!
-    {
-        if (DateTime.Now.Subtract(_sessionApiKeyTime).TotalMinutes >= Settings.ApiKeyValidMinutes)
-            await LoginAsync();
-        return true;
-    }
-    internal async Task<List<PodmiotShort>> SearchAsync(Identyfikator identyfikator, string search)
-    {
-        StringContent content = _jsonService.SerializeMainRequest(identyfikator, search);
-        HttpResponseMessage response = await _httpClient.PostAsync(Settings.ApiDataSearchUrl, content);
-        return await _jsonService.DeserializeMainRequestAsync(response);
     }
     private bool SetSessionTime()
     {
