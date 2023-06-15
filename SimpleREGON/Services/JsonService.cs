@@ -1,12 +1,9 @@
-﻿using SimpleREGON.Models.Request;
+﻿using SimpleREGON.Models;
+using SimpleREGON.Models.Request;
 using SimpleREGON.Models.Response;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
-using System.Threading.Tasks;
 
 namespace SimpleREGON.Services;
 
@@ -25,7 +22,7 @@ internal class JsonService
             .Take(20)
             .ToArray());
     }
-    internal async Task<string?> ParseSessionKeyAsync(HttpResponseMessage response)
+    internal async Task<string?> ParseDataAsync(HttpResponseMessage response)
     {
         var result = await JsonSerializer.DeserializeAsync<DataValue>(await response.Content.ReadAsStreamAsync());
         return result?.Data;
@@ -34,7 +31,31 @@ internal class JsonService
     {
         Login login = new();
         login.Key = baseKey;
-        string payload = JsonSerializer.Serialize(login);
+        return CreateStringContent(login);
+    }
+    internal StringContent SerializeMainRequest(Identyfikator identyfikator, string search)
+    {
+        GetData data = new();
+        _ = identyfikator switch
+        {
+            Identyfikator.NIP => data.pParametryWyszukiwania.Nip = search,
+            Identyfikator.NIPy => data.pParametryWyszukiwania.Nipy = search,
+            Identyfikator.REGON => data.pParametryWyszukiwania.Regon = search,
+            Identyfikator.REGONy => data.pParametryWyszukiwania.Regony9zn = search,
+            Identyfikator.KRS => data.pParametryWyszukiwania.Krs = search,
+            Identyfikator.KRSy => data.pParametryWyszukiwania.Krsy = search,
+            _ => throw new NotImplementedException()
+        };
+        return CreateStringContent(data);
+    }
+    internal async Task<List<PodmiotShort>> DeserializeMainRequestAsync(HttpResponseMessage response)
+    {
+        var payload = new MemoryStream(Encoding.UTF8.GetBytes(await ParseDataAsync(response) ?? ""));
+        return await JsonSerializer.DeserializeAsync<List<PodmiotShort>>(payload);
+    }
+    private StringContent CreateStringContent<T>(T data)
+    {
+        string payload = JsonSerializer.Serialize(data);
         return new StringContent(payload, Encoding.UTF8, "application/json");
     }
 

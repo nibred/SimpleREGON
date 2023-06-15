@@ -1,15 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace SimpleREGON.Models.Request;
+﻿namespace SimpleREGON.Models.Request;
 
 internal class GetData
 {
     public bool jestWojPowGmnMiej { get; set; } = true;
     public Parameters pParametryWyszukiwania { get; set; }
+    public GetData() => pParametryWyszukiwania = new Parameters();
 }
 
 internal class Parameters

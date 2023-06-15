@@ -1,11 +1,7 @@
-﻿using SimpleREGON.Models.DTO;
+﻿using SimpleREGON.Models;
+using SimpleREGON.Models.DTO;
 using SimpleREGON.Models.Response;
 using SimpleREGON.Services;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace SimpleREGON;
 
@@ -13,8 +9,8 @@ public class SimpleRegon
 {
     private readonly HttpService? _httpService;
     public SimpleRegon() => _httpService ??= new HttpService();
-    public async Task<bool> Login() => await _httpService!.Login();
-    public async Task<bool> Login(string apiKey) => await _httpService!.Login(apiKey);
+    public async Task<bool> LoginAsync() => await _httpService!.LoginAsync();
+    public async Task<bool> LoginAsync(string apiKey) => await _httpService!.LoginAsync(apiKey);
     public bool ValidateNip(string nip)
     {
         nip = nip.Replace("-", string.Empty);
@@ -24,9 +20,39 @@ public class SimpleRegon
         int sum = nip.Zip(weights, (digit, weight) => (digit - '0') * weight).Sum();
         return (sum % 11) == (nip[9] - '0');
     }
-    public Task<List<Podmiot>>? SearchNip(params string[] nip)
+    public async Task<List<Podmiot>> SearchNipAsync(params string[] nipy)
     {
-
-        return null;
+        foreach (string nip in nipy)
+        {
+            if (!ValidateNip(nip)) return new List<Podmiot>();
+        }
+        string joinNips = string.Join("\n", nipy);
+        List<PodmiotShort> answer = new();
+        if (nipy.Length == 1)
+        {
+            answer = await _httpService!.SearchAsync(Identyfikator.NIP, nipy[0]);
+        }
+        else
+        {
+            answer = await _httpService!.SearchAsync(Identyfikator.NIPy, joinNips);
+        }
+        List<Podmiot> podmiots = new();
+        foreach (var podmiot in answer)
+        {
+            podmiots.Add(new Podmiot
+            {
+                Gmina = podmiot.Gmina,
+                KodPocztowy = podmiot.KodPocztowy,
+                Miejscowosc = podmiot.Miejscowosc,
+                Nazwa = podmiot.Nazwa,
+                NumerNieruchomosci = podmiot.Numer_Nieruchomosci,
+                Powiat = podmiot.Powiat,
+                Regon = podmiot.Regon,
+                Skreslony = !podmiot.DataZak.Contains('-'),
+                Ulica = podmiot.Ulica,
+                Wojewodztwo = podmiot.Wojewodztwo
+            });
+        }
+        return podmiots;
     }
 }
