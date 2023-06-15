@@ -17,8 +17,21 @@ public class SimpleRegon
         if (nip.Length != 10 || nip.Any(chr => !char.IsDigit(chr)))
             return false;
         int[] weights = { 6, 5, 7, 2, 3, 4, 5, 6, 7, 0 };
-        int sum = nip.Zip(weights, (digit, weight) => (digit - '0') * weight).Sum();
+        int sum = nip.Zip(weights, (d, w) => (d - '0') * w).Sum();
         return (sum % 11) == (nip[9] - '0');
+    }
+    public bool ValidateRegon(string regon)
+    {
+        int[] weights9 = { 8, 9, 2, 3, 4, 5, 6, 7 };
+        int[] weights14 = { 2, 4, 8, 5, 0, 9, 7, 3, 6, 1, 2, 4, 8 };
+        if (regon.Any(chr => !char.IsDigit(chr)))
+            return false;
+        return regon.Length switch
+        {
+            9 => regon.Zip(weights9, (d, w) => (d - '0') * w).Sum() % 11 == (regon[8] - '0'),
+            14 => regon.Zip(weights14, (d, w) => (d - '0') * w).Sum() % 11 == (regon[13] - '0'),
+            _ => false
+        };
     }
     public async Task<List<Podmiot>> SearchNipAsync(params string[] nipy)
     {

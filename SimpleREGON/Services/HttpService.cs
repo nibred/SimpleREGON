@@ -36,7 +36,7 @@ internal class HttpService
     {
         AddHeader("Accept", "application/json");
         AddHeader("Host", "wyszukiwarkaregon.stat.gov.pl");
-        AddHeader("Origin", @"https://wyszukiwarkaregon.stat.gov.pl");
+        AddHeader("Origin", "https://wyszukiwarkaregon.stat.gov.pl");
         AddHeader("Referer", Settings.MainPage);
         AddHeader("User-Agent", Settings.UserAgent);
         AddHeader("Connection", "keep-alive");
