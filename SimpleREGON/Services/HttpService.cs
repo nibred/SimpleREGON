@@ -1,7 +1,4 @@
-﻿using SimpleREGON.Models;
-using SimpleREGON.Models.Response;
-
-namespace SimpleREGON.Services;
+﻿namespace SimpleREGON.Services;
 
 internal class HttpService
 {
@@ -38,12 +35,12 @@ internal class HttpService
         }
         return false;
     }
-    internal async Task<List<T>> SearchAsync<T>(Identyfikator identyfikator, string search)
+    internal async Task<string> SearchAsync<T>(T value)
     {
         await CheckApiKeyAsync();
-        StringContent content = _jsonService.SerializeMainRequest(identyfikator, search);
+        StringContent content = _jsonService.SerializeRequest(value);
         HttpResponseMessage response = await _httpClient.PostAsync(Settings.ApiDataSearchUrl, content);
-        return await _jsonService.DeserializeMainRequestAsync<T>(response);
+        return await _jsonService.DeserializeRequestAsync(response);
     }
     private async Task CheckApiKeyAsync()
     {
@@ -78,7 +75,7 @@ internal class HttpService
     private async Task UpdateApiKeyAsync(string apiKey)
     {
         var response = await PostAsync(Settings.ApiLoginUrl, _jsonService.SerializeLogin(apiKey));
-        _sessionApiKey = await _jsonService.ParseDataAsync(response);
+        _sessionApiKey = await _jsonService.DeserializeValueAsync(response);
         AddHeader("Sid", _sessionApiKey);
     }
     private bool SetSessionTime()

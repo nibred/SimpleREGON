@@ -1,6 +1,5 @@
 ﻿using SimpleREGON.Models;
 using SimpleREGON.Models.Request;
-using SimpleREGON.Models.Response;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
@@ -22,10 +21,12 @@ internal class JsonService
             .Take(20)
             .ToArray());
     }
-    internal async Task<string?> ParseDataAsync(HttpResponseMessage response)
+    internal async Task<string> DeserializeValueAsync(HttpResponseMessage response)
     {
-        var result = await JsonSerializer.DeserializeAsync<DataValue>(await response.Content.ReadAsStreamAsync());
-        return result?.Data;
+        var result = await JsonSerializer.DeserializeAsync<Dictionary<string, string>>(await response.Content.ReadAsStreamAsync());
+        if (result != null && result.ContainsKey("d")) 
+            return result["d"];
+        return string.Empty;
     }
     internal StringContent SerializeLogin(string baseKey)
     {
@@ -35,27 +36,20 @@ internal class JsonService
         };
         return CreateStringContent(login);
     }
-    internal StringContent SerializeMainRequest(Identyfikator identyfikator, string search)
+    internal StringContent SerializeRequest<T>(T data)
     {
-        GetData data = new();
-        _ = identyfikator switch
-        {
-            Identyfikator.NIP => data.pParametryWyszukiwania.Nip = search,
-            Identyfikator.NIPy => data.pParametryWyszukiwania.Nipy = search,
-            Identyfikator.REGON => data.pParametryWyszukiwania.Regon = search,
-            Identyfikator.REGONy9 => data.pParametryWyszukiwania.Regony9zn = search,
-            Identyfikator.REGONy14 => data.pParametryWyszukiwania.Regony14zn = search,
-            Identyfikator.KRS => data.pParametryWyszukiwania.Krs = search,
-            Identyfikator.KRSy => data.pParametryWyszukiwania.Krsy = search,
-            _ => throw new NotImplementedException()
-        };
         return CreateStringContent(data);
     }
-    internal async Task<List<T>> DeserializeMainRequestAsync<T>(HttpResponseMessage response)
+
+    internal async Task<string> DeserializeRequestAsync(HttpResponseMessage response)
     {
-        var payload = new MemoryStream(Encoding.UTF8.GetBytes(await ParseDataAsync(response) ?? ""));
-        return await JsonSerializer.DeserializeAsync<List<T>>(payload);
+        return await DeserializeValueAsync(response);
     }
+    //internal async Task<List<T>> DeserializeMainRequestAsync<T>(HttpResponseMessage response)
+    //{
+    //    var payload = new MemoryStream(Encoding.UTF8.GetBytes(await ParseDataAsync(response) ?? ""));
+    //    return await JsonSerializer.DeserializeAsync<List<T>>(payload);
+    //}
     private StringContent CreateStringContent<T>(T data)
     {
         string payload = JsonSerializer.Serialize(data);

@@ -1,6 +1,5 @@
 ﻿using SimpleREGON.Models;
-using SimpleREGON.Models.DTO;
-using SimpleREGON.Models.Response;
+using SimpleREGON.Models.Request;
 using SimpleREGON.Services;
 
 namespace SimpleREGON;
@@ -34,75 +33,40 @@ public class SimpleRegon
             _ => false
         };
     }
-    public async Task<List<Podmiot>> FindByNipAsync(params string[] nipy)
+    public async Task<string> FindByNipAsync(params string[] nipy)
     {
+        GetData getData = new();
         foreach (string nip in nipy)
         {
-            if (!ValidateNip(nip)) return new List<Podmiot>();
+            if (!ValidateNip(nip)) return string.Empty;
         }
         string joinNips = string.Join("\n", nipy);
-        List<PodmiotShort> answer = nipy.Length switch
+        _ = nipy.Length switch
         {
-            1 => await _httpService!.SearchAsync<PodmiotShort>(Identyfikator.NIP, nipy[0]),
-            _ => await _httpService!.SearchAsync<PodmiotShort>(Identyfikator.NIPy, joinNips)
+            1 => getData.pParametryWyszukiwania.Nip = nipy[0],
+            _ => getData.pParametryWyszukiwania.Nipy = joinNips
         };
-        List<Podmiot> podmiots = new();
-        foreach (var podmiot in answer)
-        {
-            podmiots.Add(new Podmiot
-            {
-                Gmina = podmiot.Gmina,
-                KodPocztowy = podmiot.KodPocztowy,
-                Miejscowosc = podmiot.Miejscowosc,
-                Nazwa = podmiot.Nazwa,
-                NumerNieruchomosci = podmiot.Numer_Nieruchomosci,
-                Powiat = podmiot.Powiat,
-                Regon = podmiot.Regon,
-                Skreslony = !podmiot.DataZak.Contains('-'),
-                Ulica = podmiot.Ulica,
-                Wojewodztwo = podmiot.Wojewodztwo
-            });
-        }
-        return podmiots;
+        return await _httpService!.SearchAsync(getData);
     }
-    public async Task<List<Podmiot>> FindByRegonAsync(params string[] regony)
+    public async Task<string> FindByRegonAsync(params string[] regony)
     {
+        GetData getData = new();
         foreach (string regon in regony)
         {
-            if (!ValidateRegon(regon)) 
-                return new List<Podmiot>();
+            if (!ValidateRegon(regon)) return string.Empty;
         }
         if (!regony.All(x => x.Length == regony[0].Length))
-        {
-            return new List<Podmiot>();
-        }
+            return string.Empty;
         string joinRegons = string.Join("\n", regony);
-        List<PodmiotShort> answer = regony.Length switch
+        _ = regony.Length switch
         {
-            1 => await _httpService!.SearchAsync<PodmiotShort>(Identyfikator.REGON, regony[0]),
+            1 => getData.pParametryWyszukiwania.Regon = regony[0],
             _ => regony[0].Length switch
             {
-                9 => await _httpService!.SearchAsync<PodmiotShort>(Identyfikator.REGONy9, joinRegons),
-                _ => await _httpService!.SearchAsync<PodmiotShort>(Identyfikator.REGONy14, joinRegons)
+                9 => getData.pParametryWyszukiwania.Regony9zn = joinRegons,
+                _ => getData.pParametryWyszukiwania.Regony14zn = joinRegons
             }
         };
-        List<Podmiot> podmiots = new();
-        foreach (var podmiot in answer)
-        {
-            podmiots.Add(new Podmiot
-            {
-                Gmina = podmiot.Gmina,
-                KodPocztowy = podmiot.KodPocztowy,
-                Miejscowosc = podmiot.Miejscowosc,
-                Nazwa = podmiot.Nazwa,
-                NumerNieruchomosci = podmiot.Numer_Nieruchomosci,
-                Powiat = podmiot.Powiat,
-                Regon = podmiot.RegonLink,
-                Skreslony = !podmiot.DataZak.Contains('-'),
-                Ulica = podmiot.Ulica,
-                Wojewodztwo = podmiot.Wojewodztwo
-            });
-        }
-        return podmiots;
+        return await _httpService!.SearchAsync(getData);
     }
 }
