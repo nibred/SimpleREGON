@@ -1,6 +1,4 @@
-﻿using SimpleREGON.Models;
-using SimpleREGON.Models.Request;
-using System.Text;
+﻿using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 
@@ -10,6 +8,8 @@ internal class JsonService
 {
     internal async Task<string> ParseBaseKeyAsync(HttpResponseMessage response)
     {
+        if (!IsSuccessStatusCode(response))
+            return string.Empty;
         string result = await response.Content.ReadAsStringAsync();
         string pattern = @"eval\(String.fromCharCode\((.*)\)\)";
         Match? match = Regex.Match(result, pattern, RegexOptions.Multiline);
@@ -23,32 +23,19 @@ internal class JsonService
     }
     internal async Task<string> DeserializeValueAsync(HttpResponseMessage response)
     {
+        if (!IsSuccessStatusCode(response))
+            return string.Empty;
         var result = await JsonSerializer.DeserializeAsync<Dictionary<string, string>>(await response.Content.ReadAsStreamAsync());
-        if (result != null && result.ContainsKey("d")) 
+        if (result != null && result.ContainsKey("d"))
             return result["d"];
         return string.Empty;
     }
-    internal StringContent SerializeLogin(string baseKey)
-    {
-        Login login = new()
+    internal StringContent SerializeLogin(string baseKey) => CreateStringContent(new Dictionary<string, string>()
         {
-            Key = baseKey
-        };
-        return CreateStringContent(login);
-    }
-    internal StringContent SerializeRequest<T>(T data)
-    {
-        return CreateStringContent(data);
-    }
-
-    internal async Task<string> DeserializeRequestAsync(HttpResponseMessage response)
-    {
-        return await DeserializeValueAsync(response);
-    }
-    private StringContent CreateStringContent<T>(T data)
-    {
-        string payload = JsonSerializer.Serialize(data);
-        return new StringContent(payload, Encoding.UTF8, "application/json");
-    }
-
+            {"pKluczUzytkownika", baseKey}
+        });
+    internal StringContent SerializeRequest<T>(T data) => CreateStringContent(data);
+    internal async Task<string> DeserializeRequestAsync(HttpResponseMessage response) => await DeserializeValueAsync(response);
+    private StringContent CreateStringContent<T>(T data) => new(JsonSerializer.Serialize(data), Encoding.UTF8, "application/json");
+    private bool IsSuccessStatusCode(HttpResponseMessage response) => response.IsSuccessStatusCode;
 }

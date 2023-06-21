@@ -7,8 +7,7 @@ public class SimpleRegon
 {
     private readonly HttpService? _httpService;
     public SimpleRegon() => _httpService ??= new HttpService();
-
-    public async Task Login() => await _httpService!.LoginAsync();
+    public async Task<bool> LoginAsync() => await _httpService!.LoginAsync();
     public bool ValidateNip(string nip)
     {
         nip = nip.Replace("-", string.Empty);
@@ -45,7 +44,7 @@ public class SimpleRegon
             1 => getData.pParametryWyszukiwania.Nip = nipy[0],
             _ => getData.pParametryWyszukiwania.Nipy = joinNips
         };
-        return await _httpService!.SearchAsync(getData);
+        return await _httpService!.SearchAsync(Settings.UrlDataSearch, getData);
     }
     public async Task<string> FindByRegonAsync(params string[] regony)
     {
@@ -66,6 +65,6 @@ public class SimpleRegon
                 _ => getData.pParametryWyszukiwania.Regony14zn = joinRegons
             }
         };
-        return await _httpService!.SearchAsync(getData);
+        return await _httpService!.SearchAsync(Settings.UrlDataSearch, getData);
     }
 }

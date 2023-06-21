@@ -1,6 +1,4 @@
-﻿using System.Diagnostics;
-
-namespace SimpleREGON.Services;
+﻿namespace SimpleREGON.Services;
 
 internal class HttpService
 {
@@ -16,17 +14,18 @@ internal class HttpService
         _jsonService ??= new JsonService();
         ConfigureBaseHeaders();
     }
-    internal async Task LoginAsync()
+    internal async Task<bool> LoginAsync()
     {
         _baseApiKey ??= await GetBaseKeyAsync();
         await UpdateApiKeyAsync();
         _apiKeyUpdateTimer = new(async state => await UpdateApiKeyAsync(), null, Settings.ApiKeyUpdateIntervalMinutes, Settings.ApiKeyUpdateIntervalMinutes);
+        return string.IsNullOrEmpty(_sessionApiKey);
     }
-    internal async Task<string> SearchAsync<T>(T value)
+    internal async Task<string> SearchAsync<T>(string requestUri, T value)
     {
         StringContent content = _jsonService.SerializeRequest(value);
-        HttpResponseMessage response = await _httpClient.PostAsync(Settings.ApiDataSearchUrl, content);
-        return await _jsonService.DeserializeRequestAsync(response);
+        HttpResponseMessage response = await _httpClient.PostAsync(requestUri, content);
+        return await _jsonService.DeserializeValueAsync(response);
     }
     private async Task<HttpResponseMessage> GetAsync(string url, CancellationToken cancellationToken = default)
     {
@@ -55,13 +54,13 @@ internal class HttpService
     }
     private async Task UpdateApiKeyAsync()
     {
-        var response = await PostAsync(Settings.ApiLoginUrl, _jsonService.SerializeLogin(_baseApiKey));
+        HttpResponseMessage response = await PostAsync(Settings.UrlLogin, _jsonService.SerializeLogin(_baseApiKey ?? string.Empty));
         _sessionApiKey = await _jsonService.DeserializeValueAsync(response);
         AddHeader("Sid", _sessionApiKey);
     }
     private async Task<string> GetBaseKeyAsync()
     {
-        var response = await GetAsync(Settings.MainPage);
+        HttpResponseMessage response = await GetAsync(Settings.MainPage);
         return await _jsonService.ParseBaseKeyAsync(response);
     }
 }
