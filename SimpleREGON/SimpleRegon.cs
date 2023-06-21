@@ -1,5 +1,4 @@
-﻿using SimpleREGON.Models;
-using SimpleREGON.Models.Request;
+﻿using SimpleREGON.Models.Request;
 using SimpleREGON.Services;
 
 namespace SimpleREGON;
@@ -8,16 +7,16 @@ public class SimpleRegon
 {
     private readonly HttpService? _httpService;
     public SimpleRegon() => _httpService ??= new HttpService();
-    public async Task<bool> LoginAsync() => await _httpService!.LoginAsync();
-    public async Task<bool> LoginAsync(string apiKey) => await _httpService!.LoginAsync(apiKey);
+
+    public async Task Login() => await _httpService!.LoginAsync();
     public bool ValidateNip(string nip)
     {
         nip = nip.Replace("-", string.Empty);
         if (nip.Length != 10 || nip.Any(chr => !char.IsDigit(chr)))
             return false;
         int[] weights = { 6, 5, 7, 2, 3, 4, 5, 6, 7, 0 };
-        int sum = nip.Zip(weights, (d, w) => (d - '0') * w).Sum();
-        return (sum % 11) == (nip[9] - '0');
+        int sum = nip.Zip(weights, (d, w) => (d - '0') * w).Sum() % 11;
+        return (sum % 10) == (nip[9] - '0');
     }
     public bool ValidateRegon(string regon)
     {
@@ -28,8 +27,8 @@ public class SimpleRegon
         int regonSum(int[] weights) => regon.Zip(weights, (d, w) => (d - '0') * w).Sum() % 11;
         return regon.Length switch
         {
-            9 => regonSum(weights9) == (regon[8] - '0'),
-            14 => regonSum(weights14) == (regon[13] - '0'),
+            9 => regonSum(weights9) % 10 == (regon[8] - '0'),
+            14 => regonSum(weights14) % 10 == (regon[13] - '0'),
             _ => false
         };
     }

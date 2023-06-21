@@ -1,4 +1,6 @@
-﻿namespace SimpleREGON.Services;
+﻿using System.Diagnostics;
+
+namespace SimpleREGON.Services;
 
 internal class HttpService
 {
@@ -6,8 +8,7 @@ internal class HttpService
     private readonly JsonService _jsonService;
     private string? _sessionApiKey;
     private string? _baseApiKey;
-    private bool _userApiKey;
-    private DateTime _sessionApiKeyTime;
+    private Timer? _apiKeyUpdateTimer;
 
     internal HttpService()
     {
@@ -15,37 +16,17 @@ internal class HttpService
         _jsonService ??= new JsonService();
         ConfigureBaseHeaders();
     }
-
-    internal async Task<bool> LoginAsync()
+    internal async Task LoginAsync()
     {
-        _userApiKey = false;
         _baseApiKey ??= await GetBaseKeyAsync();
-        await UpdateApiKeyAsync(_baseApiKey);
-        return SetSessionTime();
-    }
-    internal async Task<bool> LoginAsync(string apiKey)
-    {
-        if (apiKey.Length < 20)
-            return false;
-        await UpdateApiKeyAsync(apiKey);
-        if (SetSessionTime())
-        {
-            _userApiKey = true;
-            return true;
-        }
-        return false;
+        await UpdateApiKeyAsync();
+        _apiKeyUpdateTimer = new(async state => await UpdateApiKeyAsync(), null, Settings.ApiKeyUpdateIntervalMinutes, Settings.ApiKeyUpdateIntervalMinutes);
     }
     internal async Task<string> SearchAsync<T>(T value)
     {
-        await CheckApiKeyAsync();
         StringContent content = _jsonService.SerializeRequest(value);
         HttpResponseMessage response = await _httpClient.PostAsync(Settings.ApiDataSearchUrl, content);
         return await _jsonService.DeserializeRequestAsync(response);
-    }
-    private async Task CheckApiKeyAsync()
-    {
-        if (!_userApiKey || DateTime.Now.Subtract(_sessionApiKeyTime).TotalMinutes >= Settings.ApiKeyValidMinutes)
-            await LoginAsync();
     }
     private async Task<HttpResponseMessage> GetAsync(string url, CancellationToken cancellationToken = default)
     {
@@ -72,20 +53,11 @@ internal class HttpService
         AddHeader("Connection", "keep-alive");
         AddHeader("Sid", "");
     }
-    private async Task UpdateApiKeyAsync(string apiKey)
+    private async Task UpdateApiKeyAsync()
     {
-        var response = await PostAsync(Settings.ApiLoginUrl, _jsonService.SerializeLogin(apiKey));
+        var response = await PostAsync(Settings.ApiLoginUrl, _jsonService.SerializeLogin(_baseApiKey));
         _sessionApiKey = await _jsonService.DeserializeValueAsync(response);
         AddHeader("Sid", _sessionApiKey);
-    }
-    private bool SetSessionTime()
-    {
-        if (!string.IsNullOrEmpty(_sessionApiKey))
-        {
-            _sessionApiKeyTime = DateTime.Now;
-            return true;
-        }
-        return false;
     }
     private async Task<string> GetBaseKeyAsync()
     {

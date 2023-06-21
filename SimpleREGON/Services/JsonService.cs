@@ -45,11 +45,6 @@ internal class JsonService
     {
         return await DeserializeValueAsync(response);
     }
-    //internal async Task<List<T>> DeserializeMainRequestAsync<T>(HttpResponseMessage response)
-    //{
-    //    var payload = new MemoryStream(Encoding.UTF8.GetBytes(await ParseDataAsync(response) ?? ""));
-    //    return await JsonSerializer.DeserializeAsync<List<T>>(payload);
-    //}
     private StringContent CreateStringContent<T>(T data)
     {
         string payload = JsonSerializer.Serialize(data);
