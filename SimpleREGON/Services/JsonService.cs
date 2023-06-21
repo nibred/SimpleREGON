@@ -1,5 +1,6 @@
 ﻿using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 
 namespace SimpleREGON.Services;
@@ -30,12 +31,71 @@ internal class JsonService
             return result["d"];
         return string.Empty;
     }
-    internal StringContent SerializeLogin(string baseKey) => CreateStringContent(new Dictionary<string, string>()
+    internal StringContent SerializeLogin(string baseKey) => SerializeRequest(new Dictionary<string, string>()
         {
             {"pKluczUzytkownika", baseKey}
         });
-    internal StringContent SerializeRequest<T>(T data) => CreateStringContent(data);
+    internal async Task<string> GetShortResponseAsync(HttpResponseMessage response)
+    {
+        List<Dictionary<string, string>>? dict = await DeserializeResponseToDict(response);
+        if (dict == null)
+            return string.Empty;
+        foreach (var json in dict)
+        {
+            if (json.ContainsKey("RegonLink"))
+                json.Remove("RegonLink");
+            if (json.ContainsKey("DataZak") && json["DataZak"].StartsWith('-'))
+                json["DataZak"] = "";
+        }
+        return SerializeDictToJson(dict);
+    }
+
+    internal async Task<StringContent> GetFullResponseAsync(HttpResponseMessage response)
+    {
+        Dictionary<string, string> content = new() 
+        { 
+            { "pNazwaRaportu", "" }, 
+            { "pRegon", "" }, 
+            { "pSilosID", "" } 
+        };
+        List<Dictionary<string, string>>? dict = await DeserializeResponseToDict(response);
+        if (dict == null)
+            return SerializeRequest(content);
+        if (dict[0].ContainsKey("RegonLink"))
+        {
+            string pattern = @"danePobierzPelnyRaport\(""([^""]+)"",\s*""([^""]+)"",\s*([^\\s)]+)";
+            Match? match = Regex.Match(dict[0]["RegonLink"], pattern);
+            string regon = match.Groups[1].Value;
+            string report = match.Groups[2].Value;
+            string silosId = match.Groups[3].Value;
+            content["pNazwaRaportu"] = report;
+            content["pRegon"] = regon;
+            content["pSilosID"] = silosId;
+        }
+        return SerializeRequest(content);
+    }
+
+    internal StringContent SerializeRequest<T>(T data) => new(JsonSerializer.Serialize(data), Encoding.UTF8, "application/json");
     internal async Task<string> DeserializeRequestAsync(HttpResponseMessage response) => await DeserializeValueAsync(response);
-    private StringContent CreateStringContent<T>(T data) => new(JsonSerializer.Serialize(data), Encoding.UTF8, "application/json");
     private bool IsSuccessStatusCode(HttpResponseMessage response) => response.IsSuccessStatusCode;
+    private async Task<List<Dictionary<string, string>>?> DeserializeResponseToDict(HttpResponseMessage response)
+    {
+        string value = await DeserializeValueAsync(response);
+        if (string.IsNullOrEmpty(value))
+            return null;
+        List<Dictionary<string, string>>? jsonDictionary = await JsonSerializer.DeserializeAsync<List<Dictionary<string, string>>>(new MemoryStream(Encoding.UTF8.GetBytes(value)));
+        return jsonDictionary switch
+        {
+            null => null,
+            _ => jsonDictionary,
+        };
+    }
+    private string SerializeDictToJson<T>(T data)
+    {
+        return JsonSerializer.Serialize(data, new JsonSerializerOptions
+        {
+            WriteIndented = true,
+            Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+        });
+    }
 }

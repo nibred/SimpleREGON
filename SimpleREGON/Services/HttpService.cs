@@ -25,7 +25,7 @@ internal class HttpService
     {
         StringContent content = _jsonService.SerializeRequest(value);
         HttpResponseMessage response = await _httpClient.PostAsync(requestUri, content);
-        return await _jsonService.DeserializeValueAsync(response);
+        return await _jsonService.GetShortResponseAsync(response);
     }
     private async Task<HttpResponseMessage> GetAsync(string url, CancellationToken cancellationToken = default)
     {
