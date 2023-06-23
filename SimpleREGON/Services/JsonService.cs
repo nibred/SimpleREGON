@@ -7,6 +7,16 @@ namespace SimpleREGON.Services;
 
 internal class JsonService
 {
+    private readonly SerializationService _serializationService;
+    private readonly DeserializationService _deserializationService;
+    private readonly HttpService _httpService;
+
+    public JsonService()
+    {
+        _serializationService ??= new SerializationService();
+        _deserializationService ??= new DeserializationService();
+        _httpService ??= new HttpService();
+    }
     internal async Task<string> ParseBaseKeyAsync(HttpResponseMessage response)
     {
         if (!IsSuccessStatusCode(response))

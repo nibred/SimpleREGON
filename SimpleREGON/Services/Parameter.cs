@@ -1,6 +1,6 @@
-﻿namespace SimpleREGON.Models;
+﻿namespace SimpleREGON.Services;
 
-internal enum Identyfikator
+internal enum Parameter
 {
     NIP,
     NIPy,
