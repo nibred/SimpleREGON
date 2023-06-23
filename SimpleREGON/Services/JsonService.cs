@@ -1,6 +1,5 @@
 ﻿using System.Text;
 using System.Text.Json;
-using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 
 namespace SimpleREGON.Services;
@@ -10,39 +9,29 @@ internal class JsonService
     private readonly SerializationService _serializationService;
     private readonly DeserializationService _deserializationService;
     private readonly HttpService _httpService;
-
+    private string? _sessionApiKey;
+    private string? _baseApiKey;
+    private Timer? _apiKeyUpdateTimer;
+    private const string BaseKeyPattern = @"eval\(String.fromCharCode\((.*)\)\)";
     public JsonService()
     {
         _serializationService ??= new SerializationService();
         _deserializationService ??= new DeserializationService();
         _httpService ??= new HttpService();
     }
-    internal async Task<string> ParseBaseKeyAsync(HttpResponseMessage response)
+    internal async Task<bool> LoginAsync()
     {
-        if (!IsSuccessStatusCode(response))
-            return string.Empty;
-        string result = await response.Content.ReadAsStringAsync();
-        string pattern = @"eval\(String.fromCharCode\((.*)\)\)";
-        Match? match = Regex.Match(result, pattern, RegexOptions.Multiline);
-        string? charCodes = match?.Groups[1]?.Value ?? string.Empty;
-        return string.Join("", charCodes
-            .Split(',')
-            .Select(x => (char)int.Parse(x))
-            .Skip(19)
-            .Take(20));
+        _baseApiKey ??= await GetBaseKeyAsync();
+        await UpdateApiKeyAsync();
+        _apiKeyUpdateTimer = new(async state => await UpdateApiKeyAsync(), null, Settings.ApiKeyUpdateIntervalMinutes, Settings.ApiKeyUpdateIntervalMinutes);
+        return string.IsNullOrEmpty(_sessionApiKey);
     }
     internal async Task<string> DeserializeValueAsync(HttpResponseMessage response)
     {
-        if (!IsSuccessStatusCode(response))
-            return string.Empty;
         Stream contentStream = await response.Content.ReadAsStreamAsync();
         var resultDict = await JsonSerializer.DeserializeAsync<Dictionary<string, string>>(contentStream);
         return resultDict?.GetValueOrDefault("d") ?? string.Empty;
     }
-    internal StringContent SerializeLogin(string baseKey) => SerializeRequest(new Dictionary<string, string>()
-        {
-            ["pKluczUzytkownika"] = baseKey
-        });
     internal async Task<string> GetResponseAsync(HttpResponseMessage response)
     {
         var resultDict = await DeserializeResponseToDict(response) ?? new List<Dictionary<string, string>>();
@@ -78,7 +67,6 @@ internal class JsonService
     }
 
     internal StringContent SerializeRequest<T>(T data) => new(JsonSerializer.Serialize(data), Encoding.UTF8, "application/json");
-    private bool IsSuccessStatusCode(HttpResponseMessage response) => response.IsSuccessStatusCode;
     private async Task<List<Dictionary<string, string>>?> DeserializeResponseToDict(HttpResponseMessage response)
     {
         string value = await DeserializeValueAsync(response);
@@ -96,5 +84,23 @@ internal class JsonService
             WriteIndented = true,
             Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping
         });
+    }
+    private async Task<string> GetBaseKeyAsync()
+    {
+        string response = await _httpService.GetRequestAsync(Settings.UrlMainPage);
+        Match? match = Regex.Match(response, BaseKeyPattern, RegexOptions.Multiline);
+        string? charCodes = match?.Groups[1]?.Value ?? string.Empty;
+        return string.Join("", charCodes
+            .Split(',')
+            .Select(x => (char)int.Parse(x))
+            .Skip(19)
+            .Take(20));
+    }
+    private async Task UpdateApiKeyAsync()
+    {
+        Stream response = await _httpService.PostRequestAsync(Settings.UrlApiLoginEndpoint,
+            _serializationService.SerializeBaseRequest("pKluczUzytkownika", _baseApiKey ?? string.Empty));
+        _sessionApiKey = await _deserializationService.DeserializeBaseRequestAsync(response);
+        _httpService.SetHeader("Sid", _sessionApiKey);
     }
 }

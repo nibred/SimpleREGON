@@ -1,13 +1,12 @@
-﻿using SimpleREGON.Models.Request;
-using SimpleREGON.Services;
+﻿using SimpleREGON.Services;
 
 namespace SimpleREGON;
 
 public class SimpleRegon
 {
-    private readonly HttpService? _httpService;
-    public SimpleRegon() => _httpService ??= new HttpService();
-    public async Task<bool> LoginAsync() => await _httpService!.LoginAsync();
+    private readonly JsonService? _jsonService;
+    public SimpleRegon() => _jsonService ??= new JsonService();
+    public async Task<bool> LoginAsync() => await _jsonService!.LoginAsync();
     public bool ValidateNip(string nip)
     {
         nip = nip.Replace("-", string.Empty);
@@ -31,40 +30,41 @@ public class SimpleRegon
             _ => false
         };
     }
-    public async Task<string> FindByNipAsync(params string[] nipy)
-    {
-        GetData getData = new();
-        foreach (string nip in nipy)
-        {
-            if (!ValidateNip(nip)) return string.Empty;
-        }
-        string joinNips = string.Join("\n", nipy);
-        _ = nipy.Length switch
-        {
-            1 => getData.pParametryWyszukiwania.Nip = nipy[0],
-            _ => getData.pParametryWyszukiwania.Nipy = joinNips
-        };
-        return await _httpService!.SearchAsync(Settings.UrlApiDataEndpoint, getData);
-    }
-    public async Task<string> FindByRegonAsync(params string[] regony)
-    {
-        GetData getData = new();
-        foreach (string regon in regony)
-        {
-            if (!ValidateRegon(regon)) return string.Empty;
-        }
-        if (!regony.All(x => x.Length == regony[0].Length))
-            return string.Empty;
-        string joinRegons = string.Join("\n", regony);
-        _ = regony.Length switch
-        {
-            1 => getData.pParametryWyszukiwania.Regon = regony[0],
-            _ => regony[0].Length switch
-            {
-                9 => getData.pParametryWyszukiwania.Regony9zn = joinRegons,
-                _ => getData.pParametryWyszukiwania.Regony14zn = joinRegons
-            }
-        };
-        return await _httpService!.SearchAsync(Settings.UrlApiDataEndpoint, getData);
-    }
+
+    //public async Task<string> FindByNipAsync(params string[] nipy)
+    //{
+    //    GetData getData = new();
+    //    foreach (string nip in nipy)
+    //    {
+    //        if (!ValidateNip(nip)) return string.Empty;
+    //    }
+    //    string joinNips = string.Join("\n", nipy);
+    //    _ = nipy.Length switch
+    //    {
+    //        1 => getData.pParametryWyszukiwania.Nip = nipy[0],
+    //        _ => getData.pParametryWyszukiwania.Nipy = joinNips
+    //    };
+    //    return await _httpService!.SearchAsync(Settings.UrlApiDataEndpoint, getData);
+    //}
+    //public async Task<string> FindByRegonAsync(params string[] regony)
+    //{
+    //    GetData getData = new();
+    //    foreach (string regon in regony)
+    //    {
+    //        if (!ValidateRegon(regon)) return string.Empty;
+    //    }
+    //    if (!regony.All(x => x.Length == regony[0].Length))
+    //        return string.Empty;
+    //    string joinRegons = string.Join("\n", regony);
+    //    _ = regony.Length switch
+    //    {
+    //        1 => getData.pParametryWyszukiwania.Regon = regony[0],
+    //        _ => regony[0].Length switch
+    //        {
+    //            9 => getData.pParametryWyszukiwania.Regony9zn = joinRegons,
+    //            _ => getData.pParametryWyszukiwania.Regony14zn = joinRegons
+    //        }
+    //    };
+    //    return await _httpService!.SearchAsync(Settings.UrlApiDataEndpoint, getData);
+    //}
 }

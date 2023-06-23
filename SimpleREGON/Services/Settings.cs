@@ -4,11 +4,12 @@ internal static class Settings
 {
     internal static string UrlMainPage => "https://wyszukiwarkaregon.stat.gov.pl/appBIR/index.aspx";
     internal static string UrlApiBase => "https://wyszukiwarkaregon.stat.gov.pl/wsBIR/UslugaBIRzewnPubl.svc/ajaxEndpoint/";
+    internal static string UrlApiHost => "wyszukiwarkaregon.stat.gov.pl";
     internal static string UrlApiLoginEndpoint => $"{UrlApiBase}Zaloguj";
     internal static string UrlApiDataEndpoint => $"{UrlApiBase}daneSzukaj";
     internal static string UrlApiFullDataEndpoint => $"{UrlApiBase}DanePobierzPelnyRaport";
     internal static string UserAgent => RandomizeUserAgent();
-    internal static TimeSpan ApiKeyUpdateIntervalMinutes => TimeSpan.FromMinutes(4);
+    internal static TimeSpan ApiKeyUpdateIntervalMinutes => TimeSpan.FromMinutes(3);
     private static string RandomizeUserAgent()
     {
         Random random = new();
