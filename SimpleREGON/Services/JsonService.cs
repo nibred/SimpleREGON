@@ -17,78 +17,67 @@ internal class JsonService
         string? charCodes = match?.Groups[1]?.Value ?? string.Empty;
         return string.Join("", charCodes
             .Split(',')
-            .Select(x => Convert.ToChar(int.Parse(x)))
+            .Select(x => (char)int.Parse(x))
             .Skip(19)
-            .Take(20)
-            .ToArray());
+            .Take(20));
     }
     internal async Task<string> DeserializeValueAsync(HttpResponseMessage response)
     {
         if (!IsSuccessStatusCode(response))
             return string.Empty;
-        var result = await JsonSerializer.DeserializeAsync<Dictionary<string, string>>(await response.Content.ReadAsStreamAsync());
-        if (result != null && result.ContainsKey("d"))
-            return result["d"];
-        return string.Empty;
+        Stream contentStream = await response.Content.ReadAsStreamAsync();
+        var resultDict = await JsonSerializer.DeserializeAsync<Dictionary<string, string>>(contentStream);
+        return resultDict?.GetValueOrDefault("d") ?? string.Empty;
     }
     internal StringContent SerializeLogin(string baseKey) => SerializeRequest(new Dictionary<string, string>()
         {
-            {"pKluczUzytkownika", baseKey}
+            ["pKluczUzytkownika"] = baseKey
         });
-    internal async Task<string> GetShortResponseAsync(HttpResponseMessage response)
+    internal async Task<string> GetResponseAsync(HttpResponseMessage response)
     {
-        List<Dictionary<string, string>>? dict = await DeserializeResponseToDict(response);
-        if (dict == null)
-            return string.Empty;
-        foreach (var json in dict)
+        var resultDict = await DeserializeResponseToDict(response) ?? new List<Dictionary<string, string>>();
+        foreach (var json in resultDict)
         {
-            if (json.ContainsKey("RegonLink"))
-                json.Remove("RegonLink");
-            if (json.ContainsKey("DataZak") && json["DataZak"].StartsWith('-'))
-                json["DataZak"] = "";
+            json.Remove("RegonLink");
+            json.Remove("nazwaRaportu");
+            if (json.TryGetValue("DataZak", out string? dataZak) && dataZak.StartsWith('-'))
+                json["DataZak"] = string.Empty;
         }
-        return SerializeDictToJson(dict);
+        return SerializeDictToJson(resultDict);
     }
 
-    internal async Task<StringContent> GetFullResponseAsync(HttpResponseMessage response)
+    internal async Task<StringContent> ParseFullReportDataAsync(HttpResponseMessage response)
     {
-        Dictionary<string, string> content = new() 
-        { 
-            { "pNazwaRaportu", "" }, 
-            { "pRegon", "" }, 
-            { "pSilosID", "" } 
+        var content = new Dictionary<string, string>
+        {
+            ["pNazwaRaportu"] = "",
+            ["pRegon"] = "",
+            ["pSilosID"] = ""
         };
-        List<Dictionary<string, string>>? dict = await DeserializeResponseToDict(response);
-        if (dict == null)
-            return SerializeRequest(content);
-        if (dict[0].ContainsKey("RegonLink"))
+        List<Dictionary<string, string>>? resultDict = await DeserializeResponseToDict(response);
+        if (resultDict != null && resultDict[0].ContainsKey("RegonLink"))
         {
             string pattern = @"danePobierzPelnyRaport\(""([^""]+)"",\s*""([^""]+)"",\s*([^\\s)]+)";
-            Match? match = Regex.Match(dict[0]["RegonLink"], pattern);
-            string regon = match.Groups[1].Value;
-            string report = match.Groups[2].Value;
-            string silosId = match.Groups[3].Value;
-            content["pNazwaRaportu"] = report;
-            content["pRegon"] = regon;
-            content["pSilosID"] = silosId;
+            Match match = Regex.Match(resultDict[0]["RegonLink"], pattern);
+            content["pNazwaRaportu"] = match.Groups[2].Value;
+            content["pRegon"] = match.Groups[1].Value;
+            content["pSilosID"] = match.Groups[3].Value;
         }
+
         return SerializeRequest(content);
     }
 
     internal StringContent SerializeRequest<T>(T data) => new(JsonSerializer.Serialize(data), Encoding.UTF8, "application/json");
-    internal async Task<string> DeserializeRequestAsync(HttpResponseMessage response) => await DeserializeValueAsync(response);
     private bool IsSuccessStatusCode(HttpResponseMessage response) => response.IsSuccessStatusCode;
     private async Task<List<Dictionary<string, string>>?> DeserializeResponseToDict(HttpResponseMessage response)
     {
         string value = await DeserializeValueAsync(response);
         if (string.IsNullOrEmpty(value))
             return null;
-        List<Dictionary<string, string>>? jsonDictionary = await JsonSerializer.DeserializeAsync<List<Dictionary<string, string>>>(new MemoryStream(Encoding.UTF8.GetBytes(value)));
-        return jsonDictionary switch
-        {
-            null => null,
-            _ => jsonDictionary,
-        };
+        byte[] jsonBytes = Encoding.UTF8.GetBytes(value);
+        var stream = new MemoryStream(jsonBytes);
+
+        return await JsonSerializer.DeserializeAsync<List<Dictionary<string, string>>>(stream);
     }
     private string SerializeDictToJson<T>(T data)
     {

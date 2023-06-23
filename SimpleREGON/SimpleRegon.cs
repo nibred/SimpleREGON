@@ -44,7 +44,7 @@ public class SimpleRegon
             1 => getData.pParametryWyszukiwania.Nip = nipy[0],
             _ => getData.pParametryWyszukiwania.Nipy = joinNips
         };
-        return await _httpService!.SearchAsync(Settings.UrlDataSearch, getData);
+        return await _httpService!.SearchAsync(Settings.UrlApiDataEndpoint, getData);
     }
     public async Task<string> FindByRegonAsync(params string[] regony)
     {
@@ -65,6 +65,6 @@ public class SimpleRegon
                 _ => getData.pParametryWyszukiwania.Regony14zn = joinRegons
             }
         };
-        return await _httpService!.SearchAsync(Settings.UrlDataSearch, getData);
+        return await _httpService!.SearchAsync(Settings.UrlApiDataEndpoint, getData);
     }
 }

@@ -25,7 +25,9 @@ internal class HttpService
     {
         StringContent content = _jsonService.SerializeRequest(value);
         HttpResponseMessage response = await _httpClient.PostAsync(requestUri, content);
-        return await _jsonService.GetShortResponseAsync(response);
+        var r = await _jsonService.ParseFullReportDataAsync(response);
+        response = await _httpClient.PostAsync(Settings.UrlApiFullDataEndpoint, r);
+        return await _jsonService.GetResponseAsync(response);
     }
     private async Task<HttpResponseMessage> GetAsync(string url, CancellationToken cancellationToken = default)
     {
@@ -47,20 +49,20 @@ internal class HttpService
         AddHeader("Accept", "application/json");
         AddHeader("Host", "wyszukiwarkaregon.stat.gov.pl");
         AddHeader("Origin", "https://wyszukiwarkaregon.stat.gov.pl");
-        AddHeader("Referer", Settings.MainPage);
+        AddHeader("Referer", Settings.UrlMainPage);
         AddHeader("User-Agent", Settings.UserAgent);
         AddHeader("Connection", "keep-alive");
         AddHeader("Sid", "");
     }
     private async Task UpdateApiKeyAsync()
     {
-        HttpResponseMessage response = await PostAsync(Settings.UrlLogin, _jsonService.SerializeLogin(_baseApiKey ?? string.Empty));
+        HttpResponseMessage response = await PostAsync(Settings.UrlApiLoginEndpoint, _jsonService.SerializeLogin(_baseApiKey ?? string.Empty));
         _sessionApiKey = await _jsonService.DeserializeValueAsync(response);
         AddHeader("Sid", _sessionApiKey);
     }
     private async Task<string> GetBaseKeyAsync()
     {
-        HttpResponseMessage response = await GetAsync(Settings.MainPage);
+        HttpResponseMessage response = await GetAsync(Settings.UrlMainPage);
         return await _jsonService.ParseBaseKeyAsync(response);
     }
 }
