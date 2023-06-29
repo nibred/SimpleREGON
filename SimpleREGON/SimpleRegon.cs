@@ -4,7 +4,7 @@ namespace SimpleREGON;
 
 public class SimpleRegon
 {
-    private readonly JsonService? _jsonService;
+    private readonly JsonService _jsonService;
     public SimpleRegon() => _jsonService ??= new JsonService();
     public async Task<bool> LoginAsync() => await _jsonService!.LoginAsync();
     public bool ValidateNip(string nip)
@@ -30,22 +30,26 @@ public class SimpleRegon
             _ => false
         };
     }
+    public async Task<string> FindByNipAsync(params string[] nipy)
+    {
+        foreach (string nip in nipy)
+        {
+            if (!ValidateNip(nip)) return string.Empty;
+        }
+        return string.Empty;
+    }
+    public async Task<string> GetDateStatusAsync() => await _jsonService.GetStatusAsync("StanDanych");
+    public async Task<string> GetSessionStatusAsync()
+    {
+        string status = await _jsonService.GetStatusAsync("StatusSesji");
+        return Settings.SessionStatusCodeDescription.GetValueOrDefault(status) ?? string.Empty;
+    }
+    public async Task<string> GetServiceStatusAsync()
+    {
+        string status = await _jsonService.GetStatusAsync("StatusUslugi");
+        return Settings.ServiceStatusCodeDescription.GetValueOrDefault(status) ?? string.Empty;
+    }
 
-    //public async Task<string> FindByNipAsync(params string[] nipy)
-    //{
-    //    GetData getData = new();
-    //    foreach (string nip in nipy)
-    //    {
-    //        if (!ValidateNip(nip)) return string.Empty;
-    //    }
-    //    string joinNips = string.Join("\n", nipy);
-    //    _ = nipy.Length switch
-    //    {
-    //        1 => getData.pParametryWyszukiwania.Nip = nipy[0],
-    //        _ => getData.pParametryWyszukiwania.Nipy = joinNips
-    //    };
-    //    return await _httpService!.SearchAsync(Settings.UrlApiDataEndpoint, getData);
-    //}
     //public async Task<string> FindByRegonAsync(params string[] regony)
     //{
     //    GetData getData = new();

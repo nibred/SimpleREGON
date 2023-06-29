@@ -26,65 +26,65 @@ internal class JsonService
         _apiKeyUpdateTimer = new(async state => await UpdateApiKeyAsync(), null, Settings.ApiKeyUpdateIntervalMinutes, Settings.ApiKeyUpdateIntervalMinutes);
         return string.IsNullOrEmpty(_sessionApiKey);
     }
-    internal async Task<string> DeserializeValueAsync(HttpResponseMessage response)
+    internal async Task<string> GetStatusAsync(string value)
     {
-        Stream contentStream = await response.Content.ReadAsStreamAsync();
-        var resultDict = await JsonSerializer.DeserializeAsync<Dictionary<string, string>>(contentStream);
-        return resultDict?.GetValueOrDefault("d") ?? string.Empty;
+        StringContent content = _serializationService.SerializeBaseRequest("pNazwaParametru", value);
+        Stream? answer = await _httpService.PostRequestAsync(Settings.UrlApiGetValueEndpoint, content);
+        return await _deserializationService.DeserializeBaseRequestAsync(answer);
     }
-    internal async Task<string> GetResponseAsync(HttpResponseMessage response)
-    {
-        var resultDict = await DeserializeResponseToDict(response) ?? new List<Dictionary<string, string>>();
-        foreach (var json in resultDict)
-        {
-            json.Remove("RegonLink");
-            json.Remove("nazwaRaportu");
-            if (json.TryGetValue("DataZak", out string? dataZak) && dataZak.StartsWith('-'))
-                json["DataZak"] = string.Empty;
-        }
-        return SerializeDictToJson(resultDict);
-    }
+    //internal async Task<string> GetResponseAsync(HttpResponseMessage response)
+    //{
+    //    var resultDict = await DeserializeResponseToDict(response) ?? new List<Dictionary<string, string>>();
+    //    foreach (var json in resultDict)
+    //    {
+    //        json.Remove("RegonLink");
+    //        json.Remove("nazwaRaportu");
+    //        if (json.TryGetValue("DataZak", out string? dataZak) && dataZak.StartsWith('-'))
+    //            json["DataZak"] = string.Empty;
+    //    }
+    //    return SerializeDictToJson(resultDict);
+    //}
 
-    internal async Task<StringContent> ParseFullReportDataAsync(HttpResponseMessage response)
-    {
-        var content = new Dictionary<string, string>
-        {
-            ["pNazwaRaportu"] = "",
-            ["pRegon"] = "",
-            ["pSilosID"] = ""
-        };
-        List<Dictionary<string, string>>? resultDict = await DeserializeResponseToDict(response);
-        if (resultDict != null && resultDict[0].ContainsKey("RegonLink"))
-        {
-            string pattern = @"danePobierzPelnyRaport\(""([^""]+)"",\s*""([^""]+)"",\s*([^\\s)]+)";
-            Match match = Regex.Match(resultDict[0]["RegonLink"], pattern);
-            content["pNazwaRaportu"] = match.Groups[2].Value;
-            content["pRegon"] = match.Groups[1].Value;
-            content["pSilosID"] = match.Groups[3].Value;
-        }
+    //internal async Task<StringContent> ParseFullReportDataAsync(HttpResponseMessage response)
+    //{
+    //    var content = new Dictionary<string, string>
+    //    {
+    //        ["pNazwaRaportu"] = "",
+    //        ["pRegon"] = "",
+    //        ["pSilosID"] = ""
+    //    };
+    //    List<Dictionary<string, string>>? resultDict = await DeserializeResponseToDict(response);
+    //    if (resultDict != null && resultDict[0].ContainsKey("RegonLink"))
+    //    {
+    //        string pattern = @"danePobierzPelnyRaport\(""([^""]+)"",\s*""([^""]+)"",\s*([^\\s)]+)";
+    //        Match match = Regex.Match(resultDict[0]["RegonLink"], pattern);
+    //        content["pNazwaRaportu"] = match.Groups[2].Value;
+    //        content["pRegon"] = match.Groups[1].Value;
+    //        content["pSilosID"] = match.Groups[3].Value;
+    //    }
 
-        return SerializeRequest(content);
-    }
+    //    return SerializeRequest(content);
+    //}
 
-    internal StringContent SerializeRequest<T>(T data) => new(JsonSerializer.Serialize(data), Encoding.UTF8, "application/json");
-    private async Task<List<Dictionary<string, string>>?> DeserializeResponseToDict(HttpResponseMessage response)
-    {
-        string value = await DeserializeValueAsync(response);
-        if (string.IsNullOrEmpty(value))
-            return null;
-        byte[] jsonBytes = Encoding.UTF8.GetBytes(value);
-        var stream = new MemoryStream(jsonBytes);
+    //internal StringContent SerializeRequest<T>(T data) => new(JsonSerializer.Serialize(data), Encoding.UTF8, "application/json");
+    //private async Task<List<Dictionary<string, string>>?> DeserializeResponseToDict(HttpResponseMessage response)
+    //{
+    //    string value = await DeserializeValueAsync(response);
+    //    if (string.IsNullOrEmpty(value))
+    //        return null;
+    //    byte[] jsonBytes = Encoding.UTF8.GetBytes(value);
+    //    var stream = new MemoryStream(jsonBytes);
 
-        return await JsonSerializer.DeserializeAsync<List<Dictionary<string, string>>>(stream);
-    }
-    private string SerializeDictToJson<T>(T data)
-    {
-        return JsonSerializer.Serialize(data, new JsonSerializerOptions
-        {
-            WriteIndented = true,
-            Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping
-        });
-    }
+    //    return await JsonSerializer.DeserializeAsync<List<Dictionary<string, string>>>(stream);
+    //}
+    //private string SerializeDictToJson<T>(T data)
+    //{
+    //    return JsonSerializer.Serialize(data, new JsonSerializerOptions
+    //    {
+    //        WriteIndented = true,
+    //        Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+    //    });
+    //}
     private async Task<string> GetBaseKeyAsync()
     {
         string response = await _httpService.GetRequestAsync(Settings.UrlMainPage);
@@ -98,7 +98,7 @@ internal class JsonService
     }
     private async Task UpdateApiKeyAsync()
     {
-        Stream response = await _httpService.PostRequestAsync(Settings.UrlApiLoginEndpoint,
+        Stream? response = await _httpService.PostRequestAsync(Settings.UrlApiLoginEndpoint,
             _serializationService.SerializeBaseRequest("pKluczUzytkownika", _baseApiKey ?? string.Empty));
         _sessionApiKey = await _deserializationService.DeserializeBaseRequestAsync(response);
         _httpService.SetHeader("Sid", _sessionApiKey);

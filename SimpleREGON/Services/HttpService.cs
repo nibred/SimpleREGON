@@ -8,7 +8,7 @@ internal class HttpService
         _httpClient ??= new HttpClient();
         ConfigureBaseHeaders();
     }
-    internal async Task<Stream> PostRequestAsync(string requestUri, StringContent content)
+    internal async Task<Stream?> PostRequestAsync(string requestUri, StringContent content)
     {
         var response = await _httpClient.PostAsync(requestUri, content);
         if (response.IsSuccessStatusCode)

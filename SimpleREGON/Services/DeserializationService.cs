@@ -9,8 +9,10 @@ namespace SimpleREGON.Services;
 
 internal class DeserializationService
 {
-    internal async Task<string> DeserializeBaseRequestAsync(Stream response)
+    internal async Task<string> DeserializeBaseRequestAsync(Stream? response)
     {
+        if (response == Stream.Null)
+            return string.Empty;
         var resultDict = await JsonSerializer.DeserializeAsync<Dictionary<string, string>>(response);
         return resultDict?.GetValueOrDefault("d") ?? string.Empty;
     }
