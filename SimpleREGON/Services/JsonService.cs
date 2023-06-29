@@ -32,6 +32,11 @@ internal class JsonService
         Stream? answer = await _httpService.PostRequestAsync(Settings.UrlApiGetValueEndpoint, content);
         return await _deserializationService.DeserializeBaseRequestAsync(answer);
     }
+    internal async Task<(bool result, string status)> TryGetStatusAsync(Func<Task<string>> function)
+    {
+        string status = await function();
+        return (!string.IsNullOrEmpty(status), status);
+    }
     //internal async Task<string> GetResponseAsync(HttpResponseMessage response)
     //{
     //    var resultDict = await DeserializeResponseToDict(response) ?? new List<Dictionary<string, string>>();

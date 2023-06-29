@@ -30,14 +30,14 @@ public class SimpleRegon
             _ => false
         };
     }
-    public async Task<string> FindByNipAsync(params string[] nipy)
-    {
-        foreach (string nip in nipy)
-        {
-            if (!ValidateNip(nip)) return string.Empty;
-        }
-        return string.Empty;
-    }
+    //public async Task<string> FindByNipAsync(params string[] nipy)
+    //{
+    //    foreach (string nip in nipy)
+    //    {
+    //        if (!ValidateNip(nip)) return string.Empty;
+    //    }
+    //    return string.Empty;
+    //}
     public async Task<string> GetDateStatusAsync() => await _jsonService.GetStatusAsync("StanDanych");
     public async Task<string> GetSessionStatusAsync()
     {
@@ -49,6 +49,12 @@ public class SimpleRegon
         string status = await _jsonService.GetStatusAsync("StatusUslugi");
         return Settings.ServiceStatusCodeDescription.GetValueOrDefault(status) ?? string.Empty;
     }
+    public async Task<(bool result, string status)> TryGetDateStatusAsync() => 
+        await _jsonService.TryGetStatusAsync(GetDateStatusAsync);
+    public async Task<(bool result, string status)> TryGetSessionStatusAsync() =>
+        await _jsonService.TryGetStatusAsync(GetSessionStatusAsync);
+    public async Task<(bool result, string status)> TryGetServiceStatusAsync() =>
+        await _jsonService.TryGetStatusAsync(GetServiceStatusAsync);
 
     //public async Task<string> FindByRegonAsync(params string[] regony)
     //{
