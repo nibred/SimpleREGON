@@ -1,9 +1,20 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net6.0</TargetFramework>
+    <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <Version>0.0.1</Version>
+    <SignAssembly>True</SignAssembly>
+    <Authors>element</Authors>
+    <Company />
+    <RepositoryUrl>https://github.com/nibred/SimpleREGON</RepositoryUrl>
+    <PackageProjectUrl>https://github.com/nibred/SimpleREGON</PackageProjectUrl>
+    <PackageTags>REGON; NIP; KRS; GUS</PackageTags>
+    <Title>SimpleREGON umożliwia pobieranie danych firm (NIP, REGON, KRS) ze strony GUS z lub bez klucza API. Wynik zwracany jest w formacie JSON</Title>
+    <Description>SimpleREGON to biblioteka .NET umożliwiająca pobieranie danych firm (NIP, REGON, KRS) ze strony GUS bez konieczności użycia klucza API. Wyniki zwracane są w formacie JSON</Description>
+    <AssemblyOriginatorKeyFile>SimpleREGON.snk</AssemblyOriginatorKeyFile>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
   </PropertyGroup>
 
 </Project>

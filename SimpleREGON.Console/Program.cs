@@ -1,7 +1,12 @@
 ﻿using SimpleREGON;
 
 SimpleRegon regon = new();
-await regon.LoginAsync();
-//string data = await regon.FindByRegonAsync("000173516");
-var data = await regon.TryGetServiceStatusAsync();
-Console.WriteLine(data.status);
+var serviceStatus = await regon.GetServiceStatusAsync();
+var sessionStatus = await regon.GetSessionStatusAsync();
+var dateStatus = await regon.GetDateStatusAsync();
+Console.WriteLine(serviceStatus);
+Console.WriteLine(sessionStatus);
+Console.WriteLine(dateStatus);
+Console.WriteLine($"Api key  = {regon.GetCurrentApiKey}");
+string? input = "7010790303";
+Console.WriteLine(await regon.GetDataByNipAsync(input));

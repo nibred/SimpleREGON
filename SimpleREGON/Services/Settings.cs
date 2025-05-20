@@ -11,8 +11,9 @@ internal static class Settings
     public const string UrlApiFullDataEndpoint = UrlApiBase + "DanePobierzPelnyRaport";
     public const string UrlApiGetValueEndpoint = UrlApiBase + "GetValue";
 
-    public static readonly TimeSpan ApiKeyUpdateIntervalMinutes = TimeSpan.FromMinutes(3);
-    public static string UserAgent => RandomizeUserAgent();
+    public const string ApiKeyNotFound = "api key not found";
+    public const string IncorrectValue = "incorrect value";
+    public const string ParseError = "result is empty";
 
     public static readonly Dictionary<string, string> SessionStatusCodeDescription = new()
     {
@@ -27,17 +28,49 @@ internal static class Settings
         ["2"] = "Przerwa techniczna"
     };
 
-    private static string RandomizeUserAgent()
+    public static readonly Dictionary<string, string> ResultKeysTranscription = new()
     {
-        string version = _random.Next(100, 115).ToString();
-        string webKit = $"{_random.Next(440, 550)}.{_random.Next(10, 100)}";
-        string[] baseUserAgents =
-        {
-            $"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/{webKit} (KHTML, like Gecko) Chrome/{version}.0.0.0 Safari/{webKit}",
-            $"Mozilla/5.0 (Windows NT 10.0; rv:{version}.0) Gecko/20100101 Firefox/{version}.0",
-            $"Mozilla/5.0 (Macintosh; Intel Mac OS X 13_4) AppleWebKit/{webKit} (KHTML, like Gecko) Chrome/{version}.0.0.0 Safari/{webKit}"
-        };
-        return baseUserAgents[_random.Next(baseUserAgents.Length)];
-    }
-    private static readonly Random _random = new();
+        ["regon9"] = "regon",
+        ["regon14"] = "regon14",
+        ["nip"] = "nip",
+        ["krs"] = "krs",
+        ["statusnip"] = "statusNip",
+        ["nazwisko"] = "nazwisko",
+        ["imie1"] = "pierwszeImie",
+        ["imie2"] = "drugieImie",
+        ["nazwa"] = "nazwa",
+        ["numertelefonu"] = "numerTelefonu",
+        ["adresemail"] = "email",
+        ["adresstronyinternetowej"] = "site",
+        ["numerfaksu"] = "faks",
+        ["nazwapodstawowejformyprawnej"] = "podstawowaFormaPrawna",
+        ["nazwaszczegolnejformyprawnej"] = "szczegolnaFormaPrawna",
+        ["nazwaformywlasnosci"] = "formaWlasnosci",
+        ["datawpisudoregon"] = "dataWpisuDoRegon",
+        ["dataskresleniazregon"] = "dataSkresleniaZRegon",
+        ["dataskresleniazregondzial"] = "dataSkresleniaZRegon",
+        ["datapowstania"] = "dataPowstania",
+        ["datarozpoczeciadzialalnosci"] = "dataRozpoczeciaDzialalnosci",
+        ["datawpisudoregondzialalnosci"] = "dataWpisuDoRegonDzialalnosci",
+        ["datazawieszeniadzialalnosci"] = "dataZawieszeniaDzialalnosci",
+        ["datawpisudorejestruewidencji"] = "dataWpisuDoRejestruEwidencji",
+        ["datawznowieniadzialalnosci"] = "dataWznowieniaDzialalnosci",
+        ["datazakonczeniadzialalnosci"] = "dataZakonczeniaDzialalnosci",
+        ["numerwrejestrzelubewidencji"] = "numerWRejestrzeLubEwidencji",
+        ["adsiedznazwakraju"] = "kraj",
+        ["adsiedznazwawojewodztwa"] = "wojewodztwo",
+        ["adsiedznazwapowiatu"] = "powiat",
+        ["adsiedznazwagminy"] = "gmina",
+        ["adsiedznazwamiejscowosci"] = "miejscowosc",
+        ["adsiedznazwaulicy"] = "ulica",
+        ["nazwaorganurejestrowego"] = "nazwaOrganuRejestrowego",
+        ["nazwarodzajurejestru"] = "nazwaRodzajuRejestru",
+        ["adsiedzkodpocztowy"] = "kodPocztowy",
+        ["adsiedznumernieruchomosci"] = "numerNieruchomosci",
+        ["adsiedznumerlokalu"] = "numerLokalu",
+        ["pkdkod"] = "kod",
+        ["pkdnazwa"] = "nazwa",
+        ["jednosteklokalnych"] = "jednostekLokalnych",
+        ["datazaistnieniazmiany"] = "dataZaistnieniaZmiany"
+    };
 }

@@ -2,24 +2,27 @@
 
 namespace SimpleREGON;
 
-public class SimpleRegon
+public class SimpleRegon(string apiKey = "")
 {
-    private readonly JsonService _jsonService;
-    public SimpleRegon() => _jsonService ??= new JsonService();
-    public async Task<bool> LoginAsync() => await _jsonService!.LoginAsync();
-    public bool ValidateNip(string nip)
+    private readonly HttpService _httpService = new(apiKey);
+    private readonly JsonService _jsonService = new();
+
+    public string GetCurrentApiKey => _httpService.CurrentKey;
+
+    public static bool ValidateNip(string nip)
     {
-        nip = nip.Replace("-", string.Empty);
+        nip = nip.Trim().Replace("-", string.Empty);
         if (nip.Length != 10 || nip.Any(chr => !char.IsDigit(chr)))
             return false;
-        int[] weights = { 6, 5, 7, 2, 3, 4, 5, 6, 7, 0 };
+        int[] weights = [6, 5, 7, 2, 3, 4, 5, 6, 7, 0];
         int sum = nip.Zip(weights, (d, w) => (d - '0') * w).Sum() % 11;
         return (sum % 10) == (nip[9] - '0');
     }
-    public bool ValidateRegon(string regon)
+    public static bool ValidateRegon(string regon)
     {
-        int[] weights9 = { 8, 9, 2, 3, 4, 5, 6, 7 };
-        int[] weights14 = { 2, 4, 8, 5, 0, 9, 7, 3, 6, 1, 2, 4, 8 };
+        regon = regon.Trim();
+        int[] weights9 = [8, 9, 2, 3, 4, 5, 6, 7];
+        int[] weights14 = [2, 4, 8, 5, 0, 9, 7, 3, 6, 1, 2, 4, 8];
         if (regon.Any(chr => !char.IsDigit(chr)))
             return false;
         int regonSum(int[] weights) => regon.Zip(weights, (d, w) => (d - '0') * w).Sum() % 11;
@@ -30,51 +33,87 @@ public class SimpleRegon
             _ => false
         };
     }
-    //public async Task<string> FindByNipAsync(params string[] nipy)
-    //{
-    //    foreach (string nip in nipy)
-    //    {
-    //        if (!ValidateNip(nip)) return string.Empty;
-    //    }
-    //    return string.Empty;
-    //}
-    public async Task<string> GetDateStatusAsync() => await _jsonService.GetStatusAsync("StanDanych");
+
+    public Task<string> GetDataByNipAsync(string nip)
+    {
+        Dictionary<string, string> parameters = new() { { "Nip", nip } };
+        return GetDataAsync(nip, parameters, ValidateNip);
+    }
+    public Task<string> GetDataByRegonAsync(string regon)
+    {
+        Dictionary<string, string> parameters = new() { { "Regon", regon } };
+        return GetDataAsync(regon, parameters, ValidateRegon);
+    }
+    public Task<string> GetDataByKrsAsync(string krs)
+    {
+        Dictionary<string, string> parameters = new() { { "Krs", krs } };
+        return GetDataAsync(krs, parameters);
+    }
+    public async Task<string> GetDateStatusAsync()
+    {
+        var status = await GetStatusAsync("StanDanych");
+        return _jsonService.SerializeToJsonString(new { success = true, stanDanych = status });
+    }
+
     public async Task<string> GetSessionStatusAsync()
     {
-        string status = await _jsonService.GetStatusAsync("StatusSesji");
-        return Settings.SessionStatusCodeDescription.GetValueOrDefault(status) ?? string.Empty;
+        string status = await GetStatusAsync("StatusSesji", result => Settings.SessionStatusCodeDescription[_jsonService.DeserializeResponse(result)]);
+        return _jsonService.SerializeToJsonString(new { success = true, statusSesji = status });
     }
+
     public async Task<string> GetServiceStatusAsync()
     {
-        string status = await _jsonService.GetStatusAsync("StatusUslugi");
-        return Settings.ServiceStatusCodeDescription.GetValueOrDefault(status) ?? string.Empty;
+        string status = await GetStatusAsync("StatusUslugi", result => Settings.ServiceStatusCodeDescription[_jsonService.DeserializeResponse(result)]);
+        return _jsonService.SerializeToJsonString(new { success = true, statusUslugi = status });
     }
-    public async Task<(bool result, string status)> TryGetDateStatusAsync() => 
-        await _jsonService.TryGetStatusAsync(GetDateStatusAsync);
-    public async Task<(bool result, string status)> TryGetSessionStatusAsync() =>
-        await _jsonService.TryGetStatusAsync(GetSessionStatusAsync);
-    public async Task<(bool result, string status)> TryGetServiceStatusAsync() =>
-        await _jsonService.TryGetStatusAsync(GetServiceStatusAsync);
 
-    //public async Task<string> FindByRegonAsync(params string[] regony)
-    //{
-    //    GetData getData = new();
-    //    foreach (string regon in regony)
-    //    {
-    //        if (!ValidateRegon(regon)) return string.Empty;
-    //    }
-    //    if (!regony.All(x => x.Length == regony[0].Length))
-    //        return string.Empty;
-    //    string joinRegons = string.Join("\n", regony);
-    //    _ = regony.Length switch
-    //    {
-    //        1 => getData.pParametryWyszukiwania.Regon = regony[0],
-    //        _ => regony[0].Length switch
-    //        {
-    //            9 => getData.pParametryWyszukiwania.Regony9zn = joinRegons,
-    //            _ => getData.pParametryWyszukiwania.Regony14zn = joinRegons
-    //        }
-    //    };
-    //    return await _httpService!.SearchAsync(Settings.UrlApiDataEndpoint, getData);
-    //}
+    private async Task<string> GetStatusAsync(string parameter, Func<string, string>? func = null)
+    {
+        var content = JsonService.SerializeToJsonContent(new { pNazwaParametru = parameter });
+        var (success, result) = await _httpService.TryRequestAsync(Settings.UrlApiGetValueEndpoint, content);
+        if (success)
+        {
+            return func is null ? _jsonService.DeserializeResponse(result) : func(result);
+        }
+        return result;
+    }
+    private async Task<string> GetDataAsync(string value, Dictionary<string, string> parameters, Func<string, bool>? validateFunc = null)
+    {
+        if (validateFunc is not null && !validateFunc(value))
+            return _jsonService.ThrowErrorJson(Settings.IncorrectValue);
+
+        var searchParameters = parameters.ToDictionary(
+            p => p.Key,
+            p => p.Value.Trim().Replace("-", string.Empty));
+
+        var searchPayload = JsonService.SerializeToJsonContent(new
+        {
+            pParametryWyszukiwania = searchParameters,
+            jestWojPowGmnMiej = true
+        });
+        var (success, response) = await _httpService.TryRequestAsync(Settings.UrlApiDataEndpoint, searchPayload);
+        if (!success || string.IsNullOrWhiteSpace(response))
+            return response;
+
+        string searchData = _jsonService.DeserializeResponse(response);
+        var reportPayload = JsonService.ParseDetails(searchData);
+        if (reportPayload is null)
+            return _jsonService.ThrowErrorJson(Settings.ParseError);
+        (success, response) = await _httpService.TryRequestAsync(Settings.UrlApiFullDataEndpoint, reportPayload);
+        if (!success || string.IsNullOrWhiteSpace(response))
+            return response;
+
+        var fullData = _jsonService.DeserializeResponse(response);
+        var pkdPayload = JsonService.ParseDetails(fullData);
+        string? pkdData = null;
+        if (pkdPayload is not null)
+        {
+            (success, response) = await _httpService.TryRequestAsync(Settings.UrlApiFullDataEndpoint, pkdPayload);
+            if (!success || string.IsNullOrWhiteSpace(response))
+                return response;
+            pkdData = _jsonService.DeserializeResponse(response);
+        }
+
+        return _jsonService.ExtractAndSerializeResponse(fullData, pkdData);
+    }
 }

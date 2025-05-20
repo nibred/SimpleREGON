@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System.Net.Http.Json;
+using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 
@@ -6,106 +7,109 @@ namespace SimpleREGON.Services;
 
 internal class JsonService
 {
-    private readonly SerializationService _serializationService;
-    private readonly DeserializationService _deserializationService;
-    private readonly HttpService _httpService;
-    private string? _sessionApiKey;
-    private string? _baseApiKey;
-    private Timer? _apiKeyUpdateTimer;
-    private const string BaseKeyPattern = @"eval\(String.fromCharCode\((.*)\)\)";
-    public JsonService()
-    {
-        _serializationService ??= new SerializationService();
-        _deserializationService ??= new DeserializationService();
-        _httpService ??= new HttpService();
-    }
-    internal async Task<bool> LoginAsync()
-    {
-        _baseApiKey ??= await GetBaseKeyAsync();
-        await UpdateApiKeyAsync();
-        _apiKeyUpdateTimer = new(async state => await UpdateApiKeyAsync(), null, Settings.ApiKeyUpdateIntervalMinutes, Settings.ApiKeyUpdateIntervalMinutes);
-        return string.IsNullOrEmpty(_sessionApiKey);
-    }
-    internal async Task<string> GetStatusAsync(string value)
-    {
-        StringContent content = _serializationService.SerializeBaseRequest("pNazwaParametru", value);
-        Stream? answer = await _httpService.PostRequestAsync(Settings.UrlApiGetValueEndpoint, content);
-        return await _deserializationService.DeserializeBaseRequestAsync(answer);
-    }
-    internal async Task<(bool result, string status)> TryGetStatusAsync(Func<Task<string>> function)
-    {
-        string status = await function();
-        return (!string.IsNullOrEmpty(status), status);
-    }
-    //internal async Task<string> GetResponseAsync(HttpResponseMessage response)
-    //{
-    //    var resultDict = await DeserializeResponseToDict(response) ?? new List<Dictionary<string, string>>();
-    //    foreach (var json in resultDict)
-    //    {
-    //        json.Remove("RegonLink");
-    //        json.Remove("nazwaRaportu");
-    //        if (json.TryGetValue("DataZak", out string? dataZak) && dataZak.StartsWith('-'))
-    //            json["DataZak"] = string.Empty;
-    //    }
-    //    return SerializeDictToJson(resultDict);
-    //}
+    private readonly string[] _chunks = ["y1y", "yy2", "yy3", "yy4", "yy5", "yy6", "yy7", "yy8", "yy9", "y20", "y2y", "y22", "y23", "y24", "y25", "y26", "y27", "y28", "y29", "y30", "!3!", "!32", "!33", "!34", "!35", "!36", "!37", "!38", "!39", "!40", "!4!", "!42", "!43", "!44", "!45", "!46", "!47", "!48", "!49", "!50", "!5!", "!52", "!53", "1b4", "1bb", "1ba", "1b7", "1b8", "1b9", "1a0", "1a1", "1a2", "1a3", "1a4", "1ab", "1aa", "1a7", "1a8", "1a9", "170", "171", "172", "173", "174", "17b", "71a"];
+    private readonly string _alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=";
 
-    //internal async Task<StringContent> ParseFullReportDataAsync(HttpResponseMessage response)
-    //{
-    //    var content = new Dictionary<string, string>
-    //    {
-    //        ["pNazwaRaportu"] = "",
-    //        ["pRegon"] = "",
-    //        ["pSilosID"] = ""
-    //    };
-    //    List<Dictionary<string, string>>? resultDict = await DeserializeResponseToDict(response);
-    //    if (resultDict != null && resultDict[0].ContainsKey("RegonLink"))
-    //    {
-    //        string pattern = @"danePobierzPelnyRaport\(""([^""]+)"",\s*""([^""]+)"",\s*([^\\s)]+)";
-    //        Match match = Regex.Match(resultDict[0]["RegonLink"], pattern);
-    //        content["pNazwaRaportu"] = match.Groups[2].Value;
-    //        content["pRegon"] = match.Groups[1].Value;
-    //        content["pSilosID"] = match.Groups[3].Value;
-    //    }
-
-    //    return SerializeRequest(content);
-    //}
-
-    //internal StringContent SerializeRequest<T>(T data) => new(JsonSerializer.Serialize(data), Encoding.UTF8, "application/json");
-    //private async Task<List<Dictionary<string, string>>?> DeserializeResponseToDict(HttpResponseMessage response)
-    //{
-    //    string value = await DeserializeValueAsync(response);
-    //    if (string.IsNullOrEmpty(value))
-    //        return null;
-    //    byte[] jsonBytes = Encoding.UTF8.GetBytes(value);
-    //    var stream = new MemoryStream(jsonBytes);
-
-    //    return await JsonSerializer.DeserializeAsync<List<Dictionary<string, string>>>(stream);
-    //}
-    //private string SerializeDictToJson<T>(T data)
-    //{
-    //    return JsonSerializer.Serialize(data, new JsonSerializerOptions
-    //    {
-    //        WriteIndented = true,
-    //        Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping
-    //    });
-    //}
-    private async Task<string> GetBaseKeyAsync()
+    private readonly JsonSerializerOptions _options = new()
     {
-        string response = await _httpService.GetRequestAsync(Settings.UrlMainPage);
-        Match? match = Regex.Match(response, BaseKeyPattern, RegexOptions.Multiline);
-        string? charCodes = match?.Groups[1]?.Value ?? string.Empty;
-        return string.Join("", charCodes
-            .Split(',')
-            .Select(x => (char)int.Parse(x))
-            .Skip(19)
-            .Take(20));
+        PropertyNamingPolicy = null,
+        WriteIndented = true,
+        Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+    };
+
+    internal JsonService() { }
+
+    internal string ExtractAndSerializeResponse(string data, string? pkds)
+    {
+        JsonElement jsonData = JsonSerializer.Deserialize<JsonElement>(data);
+        JsonElement jsonPkds = JsonSerializer.Deserialize<JsonElement>(pkds ?? "[]");
+        Dictionary<string, string> result = ExtractMappedValues(jsonData[0].EnumerateObject());
+        List<Dictionary<string, string>> pkdList = [];
+        foreach (var element in jsonPkds.EnumerateArray())
+        {
+            var pkdEntry = ExtractMappedValues(element.EnumerateObject());
+            if (pkdEntry.Count > 0)
+                pkdList.Add(pkdEntry);
+        }
+        var responseData = result.ToDictionary(
+            pair => pair.Key,
+            pair => (object)pair.Value);
+        if (pkdList.Count > 0)
+            responseData["pkds"] = pkdList;
+
+        return SerializeToJsonString(new
+        {
+            success = true,
+            data = responseData
+        });
     }
-    private async Task UpdateApiKeyAsync()
+
+    internal string ThrowErrorJson(string description) => SerializeToJsonString(new { success = false, description });
+
+    internal string SerializeToJsonString<T>(T parameters) => JsonSerializer.Serialize(parameters, _options);
+
+    internal static JsonContent SerializeToJsonContent<T>(T parameters)
     {
-        Stream? response = await _httpService.PostRequestAsync(Settings.UrlApiLoginEndpoint,
-            _serializationService.SerializeBaseRequest("pKluczUzytkownika", _baseApiKey ?? string.Empty));
-        _sessionApiKey = await _deserializationService.DeserializeBaseRequestAsync(response);
-        _httpService.SetHeader("Sid", _sessionApiKey);
+        JsonSerializerOptions options = new()
+        {
+            PropertyNamingPolicy = null
+        };
+        return JsonContent.Create(parameters, options: options);
+    }
+
+    internal string DeserializeResponse(string? response)
+    {
+        JsonElement jsonResponse = JsonSerializer.Deserialize<JsonElement>(response ?? "{}");
+        if (jsonResponse.TryGetProperty("d", out var result))
+        {
+            if (result.GetString()!.StartsWith("enc"))
+                return Decode(result.GetString()!);
+            return result.GetString()!;
+        }
+        return string.Empty;
+    }
+
+    internal static JsonContent? ParseDetails(string data)
+    {
+        var match = Regex.Match(data, @"danePobierzPelnyRaport\D*(\d+)\W*(\w+)\W*(\d*)");
+        if (match.Success)
+        {
+            string regon = match.Groups[1].Value;
+            string reportType = match.Groups[2].Value;
+            string number = match.Groups[3].Value;
+            if (string.IsNullOrWhiteSpace(number))
+                number = "undefined";
+            return SerializeToJsonContent(new { pNazwaRaportu = reportType, pRegon = regon, pSilosID = number });
+        }
+        return null;
+    }
+
+    private string Decode(string input)
+    {
+        string output = string.Empty;
+        for (int i = 3; i < input.Length; i += 3)
+        {
+            string c = input.Substring(i, 3);
+            output += _alphabet[Array.IndexOf(_chunks, c)];
+        }
+        return Encoding.UTF8.GetString(Convert.FromBase64String(output));
+    }
+
+    private static Dictionary<string, string> ExtractMappedValues(IEnumerable<JsonProperty> properties)
+    {
+        Dictionary<string, string>? mappedValues = [];
+        foreach (var property in properties)
+        {
+            string key = property.Name.ToLowerInvariant();
+            string baseField = key.Contains('_') ? key[(key.IndexOf('_') + 1)..] : key;
+            if (!Settings.ResultKeysTranscription.TryGetValue(baseField, out var mappedKey))
+                continue;
+            string value = property.Value.GetString()?.Trim() ?? string.Empty;
+            if (!string.IsNullOrWhiteSpace(value))
+            {
+                mappedValues[mappedKey] = value;
+            }
+        }
+        return mappedValues;
     }
 }
