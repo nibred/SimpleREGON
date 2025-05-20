@@ -16,13 +16,13 @@ bool isValidRegon = client.ValidateRegon("123456789"); //false
 #### Statusy sesji, usługi i danych
 ```csharp
 string stanDanych = await client.GetDateStatusAsync(); 
-// {"success": true, "stanDanych": "12-05-2025"}
+// {"success": true, "status": "12-05-2025"}
 
 string statusUslugi = await client.GetServiceStatusAsync(); 
-// {"success": true, "statusUslugi": "Usluga dostepna"}
+// {"success": true, "status": "Usluga dostepna"}
 
 string statusSesji = await client.GetSessionStatusAsync(); 
-// {"success": true, "statusSesji": "Sesja istnieje"}
+// {"success": true, "status": "Sesja istnieje"}
 ```
 #### Pobieranie danych
 ```csharp
