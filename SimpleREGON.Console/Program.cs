@@ -7,6 +7,6 @@ var dateStatus = await regon.GetDateStatusAsync();
 Console.WriteLine(serviceStatus);
 Console.WriteLine(sessionStatus);
 Console.WriteLine(dateStatus);
-Console.WriteLine($"Api key  = {regon.GetCurrentApiKey}");
-string? input = "7010790303";
+Console.WriteLine($"Api key = {regon.GetCurrentApiKey}");
+string? input = "5210088110";
 Console.WriteLine(await regon.GetDataByNipAsync(input));

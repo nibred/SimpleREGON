@@ -49,31 +49,26 @@ public class SimpleRegon(string apiKey = "")
         Dictionary<string, string> parameters = new() { { "Krs", krs } };
         return GetDataAsync(krs, parameters);
     }
-    public async Task<string> GetDateStatusAsync()
-    {
-        var status = await GetStatusAsync("StanDanych");
-        return _jsonService.SerializeToJsonString(new { success = true, stanDanych = status });
-    }
+    public async Task<string> GetDateStatusAsync() => await GetStatusAsync("StanDanych");
 
-    public async Task<string> GetSessionStatusAsync()
-    {
-        string status = await GetStatusAsync("StatusSesji", result => Settings.SessionStatusCodeDescription[_jsonService.DeserializeResponse(result)]);
-        return _jsonService.SerializeToJsonString(new { success = true, statusSesji = status });
-    }
+    public async Task<string> GetSessionStatusAsync() => await GetStatusAsync("StatusSesji", result => Settings.SessionStatusCodeDescription[_jsonService.DeserializeResponse(result)]);
 
-    public async Task<string> GetServiceStatusAsync()
-    {
-        string status = await GetStatusAsync("StatusUslugi", result => Settings.ServiceStatusCodeDescription[_jsonService.DeserializeResponse(result)]);
-        return _jsonService.SerializeToJsonString(new { success = true, statusUslugi = status });
-    }
+    public async Task<string> GetServiceStatusAsync() => await GetStatusAsync("StatusUslugi", result => Settings.ServiceStatusCodeDescription[_jsonService.DeserializeResponse(result)]);
 
-    private async Task<string> GetStatusAsync(string parameter, Func<string, string>? func = null)
+    private async Task<string> GetStatusAsync(string value, Func<string, string>? func = null)
     {
-        var content = JsonService.SerializeToJsonContent(new { pNazwaParametru = parameter });
+        var content = JsonService.SerializeToJsonContent(new { pNazwaParametru = value });
         var (success, result) = await _httpService.TryRequestAsync(Settings.UrlApiGetValueEndpoint, content);
         if (success)
         {
-            return func is null ? _jsonService.DeserializeResponse(result) : func(result);
+            if (func is null)
+            {
+                return _jsonService.SerializeToJsonString(new { success = true, status = _jsonService.DeserializeResponse(result) });
+            }
+            else
+            {
+                return _jsonService.SerializeToJsonString(new { success = true, status = func(result) });
+            }
         }
         return result;
     }
