@@ -2,6 +2,10 @@
 
 **SimpleREGON** to biblioteka .NET umożliwiająca pobieranie danych firm po numerach **NIP**, **REGON** lub **KRS** z [wyszukiwarki REGON](https://wyszukiwarkaregon.stat.gov.pl/appBIR/index.aspx) **bez konieczności używania klucza API**. Dane zwracane są w formacie JSON
 
+## Instalacja
+```
+dotnet add package SimpleREGON
+```
 
 ## Użycie
 #### Inicjalizacja klienta
